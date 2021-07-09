@@ -41,7 +41,7 @@ class NerTagger:
         return_tags = []
         for sentence in self.sentences:
             tokenized_sentence = config.TOKENIZER.encode(sentence)
-            len_token = len(tokenized_sentence)
+            len_tokens = len(tokenized_sentence)
             sentence = sentence.split()
             test_dataset = dataset.EntityDataset(texts = [sentence],
                                                 pos = [[0] * len(sentence)],
@@ -52,25 +52,32 @@ class NerTagger:
                     data[k] = v.unsqueeze(0)
                 tag, pos, _ = self.model(**data)
 
-            sentence_tag_list.append(tag[0][1 : len_token -1])
+            sentence_tag_list.append(tag[0][1 : len_tokens - 1])
+        # print(len(sentence_tag_list[0]))
+
         for i, sentence_tags in enumerate(sentence_tag_list):
             word_tag_mapping = {}
-            tokenized_sentence = config.TOKENIZER.encode(self.sentence[i])
-            for id, word_tags in zip(tokenized_sentence[1 : len_token-1], sentence_tags):
+            tokenized_sentence = config.TOKENIZER.encode(self.sentences[i])
+            len_tokens = len(tokenized_sentence)
+
+            for id, word_tags in zip(tokenized_sentence[1 : len_tokens - 1], sentence_tags):
                 word = config.TOKENIZER.decode([id])
                 tags_index = word_tags.argsort(descending = True).numpy()
                 tags = self.enc_tag.inverse_transform(tags_index)
+                # print("word : {}, tags : {}".format(word, tags))
 
                 for tag in self.classes:
                     if d[tag] in tags[0]:
                         word_tag_mapping[word] = tag
+
             return_tags.append(word_tag_mapping)
         return return_tags
 
 
 if __name__ == '__main__':
-    texts = ["Google is a multinational Organization"]
-    classes = ["Organization"]
+    texts = ["I am moving to Delhi on April 10", "Shivam lives in Dallas"]
+    classes = ["Geographical Entity", "Time indicator", "Person"]
     tagger = NerTagger(texts, classes)
     tags = tagger.tag()
     print(tags)
+
