@@ -41,6 +41,7 @@ class NerTagger:
         return_tags = []
         for sentence in self.sentences:
             tokenized_sentence = config.TOKENIZER.encode(sentence)
+            len_token = len(tokenized_sentence)
             sentence = sentence.split()
             test_dataset = dataset.EntityDataset(texts = [sentence],
                                                 pos = [[0] * len(sentence)],
@@ -51,10 +52,12 @@ class NerTagger:
                     data[k] = v.unsqueeze(0)
                 tag, pos, _ = self.model(**data)
 
-            sentence_tag_list.append(tag[0][1 : len(tokenized_sentence) -1])
+            sentence_tag_list.append(tag[0][1 : len_token -1])
         for i, sentence_tags in enumerate(sentence_tag_list):
             word_tag_mapping = {}
-            for word, word_tags in zip(self.sentences[i].split(), sentence_tags):
+            tokenized_sentence = config.TOKENIZER.encode(self.sentence[i])
+            for id, word_tags in zip(tokenized_sentence[1 : len_token-1], sentence_tags):
+                word = config.TOKENIZER.decode([id])
                 tags_index = word_tags.argsort(descending = True).numpy()
                 tags = self.enc_tag.inverse_transform(tags_index)
 
