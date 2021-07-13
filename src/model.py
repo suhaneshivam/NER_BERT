@@ -25,7 +25,7 @@ class EntityModel(nn.Module):
         super(EntityModel, self).__init__()
         self.num_tag = num_tag
         self.num_pos = num_pos
-        self.bert = transformers.BertModel.from_pretrained(config.BASE_MODEL_PATH, return_dict = False)
+        self.bert = transformers.BertModel.from_pretrained("bert-base-uncased", return_dict = False)
         self.bert_drop1 = nn.Dropout(0.3)
         self.bert_drop2 = nn.Dropout(0.3)
         self.out_tag = nn.Linear(768, self.num_tag)
