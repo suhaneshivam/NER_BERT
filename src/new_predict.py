@@ -1,8 +1,9 @@
 import config
 import joblib
-import numpy
+import numpy as np
 import dataset
 import torch
+from ordered_set import OrderedSet
 from model import EntityModel
 
 
@@ -21,6 +22,7 @@ d = {"Geographical Entity"       : "B-geo",
      "Inter Time indicator"      : "I-tim",
      "Inter Artifact"            : "I-art",
      "Inter Event"               : "I-eve",
+     "None"                      : "O"
     }
 
 class NerTagger:
@@ -35,7 +37,7 @@ class NerTagger:
         self.model = EntityModel(self.num_pos, self.num_tag)
         self.model.load_state_dict(torch.load(config.MODEL_PATH, map_location=torch.device("cpu")))
 
-    def tag(self):
+    def tag(self, upto = 1):
 
         sentence_tag_list = []
         return_tags = []
@@ -64,20 +66,31 @@ class NerTagger:
                 word = config.TOKENIZER.decode([id])
                 tags_index = word_tags.argsort(descending = True).numpy()
                 tags = self.enc_tag.inverse_transform(tags_index)
-                # print("word : {}, tags : {}".format(word, tags))
+                # print(word, ":", tags[:3])
+                # for tag in self.classes:
+                #     if d[tag] in tags[0]:
+                #         word_tag_mapping[word] = tag
+                if all(x in self.classes for x in tags[:upto]):
+                    word_tag_mapping[word] = tags[:upto]
+                else:
+                    list_tag = list(d[tag] for tag in self.classes)
+                    both = OrderedSet(tags[:upto]).intersection(list_tag)
+                    indices_classes = [list_tag.index(x) for x in both]
+                    lst = list(self.classes[x] for x in indices_classes)
+                    if not (len(lst) == 0 or (len(lst) == 1 and lst[0] == "None")):
+                        word_tag_mapping[word] = lst
 
-                for tag in self.classes:
-                    if d[tag] in tags[0]:
-                        word_tag_mapping[word] = tag
+
 
             return_tags.append(word_tag_mapping)
         return return_tags
 
 
 if __name__ == '__main__':
-    texts = ["I am moving to Delhi on April 10", "Shivam lives in Dallas"]
-    classes = ["Geographical Entity", "Time indicator", "Person"]
+    texts = ["Google is based in New York", "British troops are marching", "Bill Gates is the owner of Microsoft", "I will move to New Delhi on 2008-06-29", "Australian Open is held every 4 years"]
+    classes = ["Geographical Entity", "Time indicator", "Person", "Geopolitical Entity", "Inter Person", "Organization", "Inter Geographical Entity", "None"]
     tagger = NerTagger(texts, classes)
     tags = tagger.tag()
     print(tags)
+
 
